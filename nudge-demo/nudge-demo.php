@@ -8,6 +8,18 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// First visit only: WooCommerce sends new admins to its own setup Home. Send them to the NUDGE demo instead (once).
+add_action( 'admin_init', function () {
+	if ( get_option( 'nudge_demo_landed' ) || wp_doing_ajax() || ! current_user_can( 'manage_options' ) ) { return; }
+	$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+	if ( 'wc-admin' === $page ) {
+		update_option( 'nudge_demo_landed', 1 );
+		wp_safe_redirect( admin_url( 'admin.php?page=nudge-demo' ) );
+		exit;
+	}
+	if ( 'nudge-demo' === $page ) { update_option( 'nudge_demo_landed', 1 ); }
+}, 99 );
+
 add_action( 'admin_menu', function () {
 	add_menu_page( 'NUDGE (demo)', 'NUDGE (demo)', 'manage_options', 'nudge-demo', 'nudge_demo_page', 'dashicons-email-alt', 56 );
 } );
