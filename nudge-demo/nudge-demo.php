@@ -37,6 +37,7 @@ function nudge_demo_page() {
 		<p>Build an email below. <strong>Send test email</strong> sends it only to <code><?php echo esc_html( $me->user_email ); ?></code> (you). No customers are contacted. Customer data in the editor is made up.</p>
 		<p>
 			<button class="button button-primary" id="nd-send">Send test email to me</button>
+			<button class="button" id="nd-dl">Download email (.html)</button>
 			<span id="nd-msg" style="margin-left:12px"></span>
 		</p>
 		<iframe id="nd-frame" src="<?php echo $editor; ?>" style="width:100%;height:1500px;border:1px solid #dcdcde;border-radius:12px;background:#fff" title="NUDGE editor"></iframe>
