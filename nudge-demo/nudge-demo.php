@@ -37,6 +37,7 @@ function nudge_demo_page() {
 		<p>Build an email below. <strong>Send test email</strong> sends it only to <code><?php echo esc_html( $me->user_email ); ?></code> (the fake admin of this throwaway shop, not a real inbox). No real person is contacted. Customer data in the editor is made up. To see the result: click <strong>Open mail log</strong>, or <strong>Download email</strong> and open the file.</p>
 		<p>
 			<button class="button button-primary" id="nd-send">Send test email to me</button>
+			<button class="button" id="nd-all">Send to 5 made-up customers</button>
 			<button class="button" id="nd-dl">Download email (.html)</button>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wpml_plugin_log' ) ); ?>">Open mail log</a>
 			<span id="nd-msg" style="margin-left:12px"></span>
@@ -48,18 +49,41 @@ function nudge_demo_page() {
 		var f=document.getElementById('nd-frame'),btn=document.getElementById('nd-send'),msg=document.getElementById('nd-msg'),editorOrigin=<?php echo wp_json_encode( $editor_origin ); ?>;
 		var mode='send',dl=document.getElementById('nd-dl');
 		btn.addEventListener('click',function(){mode='send';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
+		document.getElementById('nd-all').addEventListener('click',function(){mode='all';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
 		dl.addEventListener('click',function(){mode='download';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
 		window.addEventListener('message',function(e){
 			if(e.origin!==editorOrigin||e.source!==f.contentWindow||!e.data||e.data.type!=='nudge-export')return;
 			if(mode==='download'){var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';return}
 			var p=e.data.payload,fd=new FormData();
-			fd.append('action','nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);
-			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".'):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
+			fd.append('action',mode==='all'?'nudge_demo_send_all':'nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);
+			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?(mode==='all'?('Sent '+j.data.count+' personalised mails to made-up customers (fake addresses). See them in the mail log.'):('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".')):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
 		});
 	})();
 	</script>
 	<?php
 }
+
+// Demo only: a FIXED list of made-up customers on the reserved .test domain (cannot receive mail, never real people).
+add_action( 'wp_ajax_nudge_demo_send_all', function () {
+	check_ajax_referer( 'nudge_demo_send' );
+	if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Not allowed' ), 403 ); }
+	$customers = array(
+		'Anna'  => 'anna@example.test',
+		'Marco' => 'marco@example.test',
+		'Lena'  => 'lena@example.test',
+		'Carlos' => 'carlos@example.test',
+		'Sofia' => 'sofia@example.test',
+	);
+	$subject_t = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : 'NUDGE test';
+	$html_t    = isset( $_POST['html'] ) ? wp_kses_post( wp_unslash( $_POST['html'] ) ) : '';
+	$count     = 0;
+	foreach ( $customers as $first => $to ) {
+		$subject = str_replace( '{{first_name}}', $first, '[NUDGE demo] ' . $subject_t );
+		$html    = str_replace( '{{first_name}}', esc_html( $first ), $html_t );
+		if ( wp_mail( $to, $subject, $html, array( 'Content-Type: text/html; charset=UTF-8' ) ) ) { $count++; }
+	}
+	wp_send_json_success( array( 'count' => $count ) );
+} );
 
 add_action( 'wp_ajax_nudge_demo_send', function () {
 	check_ajax_referer( 'nudge_demo_send' );
