@@ -2,11 +2,13 @@
 /**
  * Plugin Name: NUDGE Demo
  * Description: Demo of NUDGE inside WooCommerce. Builds a marketing email in the browser. "Send test email" goes ONLY to your own admin address. No customers are contacted.
- * Version: 0.1.0
+ * Version: 0.2.0 (consent, working unsubscribe, legal footer, plain-text part)
  * Author: AIgotya
  * License: GPL-2.0-or-later
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+require_once __DIR__ . '/includes/compliance.php';
 
 // First visit only: WooCommerce sends new admins to its own setup Home. Send them to the NUDGE demo instead (once).
 add_action( 'admin_init', function () {
@@ -39,6 +41,7 @@ function nudge_demo_page() {
 			<button class="button button-primary" id="nd-send">Send test email to me</button>
 			<button class="button" id="nd-all">Send to 5 made-up customers</button>
 			<button class="button" id="nd-dl">Download email (.html)</button>
+			<button class="button" id="nd-reset" title="Demo only: forget who unsubscribed">Reset opt-outs</button>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wpml_plugin_log' ) ); ?>">Open mail log</a>
 			<span id="nd-msg" style="margin-left:12px"></span>
 		</p>
@@ -50,13 +53,14 @@ function nudge_demo_page() {
 		var mode='send',dl=document.getElementById('nd-dl');
 		btn.addEventListener('click',function(){mode='send';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
 		document.getElementById('nd-all').addEventListener('click',function(){mode='all';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
-		dl.addEventListener('click',function(){mode='download';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
+		document.getElementById('nd-reset').addEventListener('click',function(){var r=new FormData();r.append('action','nudge_demo_reset_optouts');r.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fetch(ajaxurl,{method:'POST',body:r,credentials:'same-origin'}).then(function(){msg.textContent='Opt-outs reset.'})});
+			dl.addEventListener('click',function(){mode='download';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
 		window.addEventListener('message',function(e){
 			if(e.origin!==editorOrigin||e.source!==f.contentWindow||!e.data||e.data.type!=='nudge-export')return;
 			if(mode==='download'){var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';return}
 			var p=e.data.payload,fd=new FormData();
 			fd.append('action',mode==='all'?'nudge_demo_send_all':'nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);
-			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?(mode==='all'?('Sent '+j.data.count+' personalised mails to made-up customers (fake addresses). See them in the mail log.'):('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".')):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
+			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?(mode==='all'?('Sent '+j.data.count+' personalised mails to made-up customers (fake addresses)'+(j.data.skipped?(', skipped '+j.data.skipped+' who unsubscribed'):'')+'. Each has a footer, an unsubscribe link and a plain-text part. See the mail log.'):('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".')):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
 		});
 	})();
 	</script>
@@ -77,12 +81,13 @@ add_action( 'wp_ajax_nudge_demo_send_all', function () {
 	$subject_t = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : 'NUDGE test';
 	$html_t    = isset( $_POST['html'] ) ? wp_kses_post( wp_unslash( $_POST['html'] ) ) : '';
 	$count     = 0;
+	$skipped   = 0;
 	foreach ( $customers as $first => $to ) {
-		$subject = str_replace( '{{first_name}}', $first, '[NUDGE demo] ' . $subject_t );
-		$html    = str_replace( '{{first_name}}', esc_html( $first ), $html_t );
-		if ( wp_mail( $to, $subject, $html, array( 'Content-Type: text/html; charset=UTF-8' ) ) ) { $count++; }
+		$res = nudge_demo_deliver( $to, $first, '[NUDGE demo] ' . $subject_t, $html_t );
+		if ( 'sent' === $res ) { $count++; }
+		if ( 'skipped' === $res ) { $skipped++; }
 	}
-	wp_send_json_success( array( 'count' => $count ) );
+	wp_send_json_success( array( 'count' => $count, 'skipped' => $skipped ) );
 } );
 
 add_action( 'wp_ajax_nudge_demo_send', function () {
@@ -93,9 +98,7 @@ add_action( 'wp_ajax_nudge_demo_send', function () {
 	$name    = $me->display_name ? $me->display_name : 'there';
 	$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : 'NUDGE test';
 	$html    = isset( $_POST['html'] ) ? wp_kses_post( wp_unslash( $_POST['html'] ) ) : '';
-	$subject = str_replace( '{{first_name}}', $name, '[NUDGE test] ' . $subject );
-	$html    = str_replace( '{{first_name}}', esc_html( $name ), $html );
-	$ok      = wp_mail( $to, $subject, $html, array( 'Content-Type: text/html; charset=UTF-8' ) );
-	if ( $ok ) { wp_send_json_success( array( 'to' => $to ) ); }
-	wp_send_json_error( array( 'message' => 'wp_mail returned false' ) );
+	$res     = nudge_demo_deliver( $to, $name, '[NUDGE test] ' . $subject, $html );
+	if ( 'sent' === $res ) { wp_send_json_success( array( 'to' => $to ) ); }
+	wp_send_json_error( array( 'message' => 'skipped' === $res ? 'This address has unsubscribed (use Reset opt-outs).' : 'wp_mail returned false' ) );
 } );
