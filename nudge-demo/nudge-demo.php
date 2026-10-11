@@ -34,7 +34,7 @@ function nudge_demo_page() {
 	?>
 	<div class="wrap" style="max-width:1100px">
 		<h1 style="display:flex;gap:12px;align-items:center">NUDGE <span style="font-size:12px;background:#f76e11;color:#fff;border-radius:999px;padding:3px 10px">demo</span></h1>
-		<p>Build an email below. <strong>Send test email</strong> sends it only to <code><?php echo esc_html( $me->user_email ); ?></code> (you). No customers are contacted. Customer data in the editor is made up.</p>
+		<p>Build an email below. <strong>Send test email</strong> sends it only to <code><?php echo esc_html( $me->user_email ); ?></code> (the fake admin of this throwaway shop, not a real inbox). No real person is contacted. Customer data in the editor is made up. To see the result: click <strong>Open mail log</strong>, or <strong>Download email</strong> and open the file.</p>
 		<p>
 			<button class="button button-primary" id="nd-send">Send test email to me</button>
 			<button class="button" id="nd-dl">Download email (.html)</button>
@@ -54,7 +54,7 @@ function nudge_demo_page() {
 			if(mode==='download'){var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';return}
 			var p=e.data.payload,fd=new FormData();
 			fd.append('action','nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);
-			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?('Sent to '+j.data.to+'. Check the mail log (Tools > WP Mail Logging).'):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
+			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".'):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
 		});
 	})();
 	</script>
