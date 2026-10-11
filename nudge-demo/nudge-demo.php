@@ -44,9 +44,12 @@ function nudge_demo_page() {
 	<script>
 	(function(){
 		var f=document.getElementById('nd-frame'),btn=document.getElementById('nd-send'),msg=document.getElementById('nd-msg'),editorOrigin=<?php echo wp_json_encode( $editor_origin ); ?>;
-		btn.addEventListener('click',function(){msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
+		var mode='send',dl=document.getElementById('nd-dl');
+		btn.addEventListener('click',function(){mode='send';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
+		dl.addEventListener('click',function(){mode='download';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
 		window.addEventListener('message',function(e){
 			if(e.origin!==editorOrigin||e.source!==f.contentWindow||!e.data||e.data.type!=='nudge-export')return;
+			if(mode==='download'){var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';return}
 			var p=e.data.payload,fd=new FormData();
 			fd.append('action','nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);
 			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?('Sent to '+j.data.to+'. Check the mail log (Tools > WP Mail Logging).'):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
