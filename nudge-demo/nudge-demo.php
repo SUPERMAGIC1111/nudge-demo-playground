@@ -38,6 +38,7 @@ function nudge_demo_page() {
 		<p>
 			<button class="button button-primary" id="nd-send">Send test email to me</button>
 			<button class="button" id="nd-dl">Download email (.html)</button>
+			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wpml_plugin_log' ) ); ?>">Open mail log</a>
 			<span id="nd-msg" style="margin-left:12px"></span>
 		</p>
 		<iframe id="nd-frame" src="<?php echo $editor; ?>" style="width:100%;height:1500px;border:1px solid #dcdcde;border-radius:12px;background:#fff" title="NUDGE editor"></iframe>
