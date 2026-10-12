@@ -133,10 +133,25 @@ add_action( 'plugins_loaded', function () {
 	} );
 	add_action( 'woocommerce_checkout_create_order', function ( $order ) {
 		if ( empty( $_POST['nudge_marketing_consent'] ) ) { return; } // phpcs:ignore WordPress.Security.NonceVerification
-		$order->update_meta_data( '_nudge_marketing_consent', 'yes' );
-		$order->update_meta_data( '_nudge_consent_time', gmdate( 'c' ) );
-		$order->update_meta_data( '_nudge_consent_version', NUDGE_DEMO_CONSENT_VERSION );
+		nudge_demo_record_consent( $order );
 	} );
+
+	// Block checkout (the WooCommerce default): official Additional Checkout Fields API.
+	add_action( 'woocommerce_init', function () {
+		if ( ! function_exists( 'woocommerce_register_additional_checkout_field' ) ) { return; }
+		woocommerce_register_additional_checkout_field( array(
+			'id'       => 'nudge-demo/marketing-consent',
+			'label'    => __( 'Yes, send me news and offers by email. I can unsubscribe at any time.', 'nudge-demo' ),
+			'location' => 'contact',
+			'type'     => 'checkbox',
+			'required' => false,
+		) );
+	} );
+	add_action( 'woocommerce_set_additional_field_value', function ( $key, $value, $group, $wc_object ) {
+		if ( 'nudge-demo/marketing-consent' === $key && $value && is_object( $wc_object ) && method_exists( $wc_object, 'update_meta_data' ) ) {
+			nudge_demo_record_consent( $wc_object );
+		}
+	}, 10, 4 );
 } );
 
 /** GDPR hooks: include consent data in personal-data export and remove it on erase. */
