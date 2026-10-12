@@ -38,9 +38,9 @@ function nudge_demo_page() {
 		<h1 style="display:flex;gap:12px;align-items:center">NUDGE <span style="font-size:12px;background:#f76e11;color:#fff;border-radius:999px;padding:3px 10px">demo</span></h1>
 		<p>Build an email below. <strong>Send test email</strong> sends it only to <code><?php echo esc_html( $me->user_email ); ?></code> (the fake admin of this throwaway shop, not a real inbox). No real person is contacted. Customer data in the editor is made up. To see the result: click <strong>Open mail log</strong>, or <strong>Download email</strong> and open the file.</p>
 		<p>
-			<button class="button button-primary" id="nd-send">Send test email to me</button>
-			<button class="button" id="nd-all">Send to 5 made-up customers</button>
-			<button class="button" id="nd-dl">Download email (.html)</button>
+			<button class="button button-primary" id="nd-send" disabled>Send test email to me</button>
+			<button class="button" id="nd-all" disabled>Send to 5 made-up customers</button>
+			<button class="button" id="nd-dl" disabled>Download email (.html)</button>
 			<button class="button" id="nd-reset" title="Demo only: forget who unsubscribed">Reset opt-outs</button>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wpml_plugin_log' ) ); ?>">Open mail log</a>
 			<span id="nd-msg" style="margin-left:12px"></span>
@@ -50,18 +50,25 @@ function nudge_demo_page() {
 	</div>
 	<script>
 	(function(){
-		var f=document.getElementById('nd-frame'),btn=document.getElementById('nd-send'),msg=document.getElementById('nd-msg'),editorOrigin=<?php echo wp_json_encode( $editor_origin ); ?>;
-		var mode='send',dl=document.getElementById('nd-dl');
-		btn.addEventListener('click',function(){mode='send';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
-		document.getElementById('nd-all').addEventListener('click',function(){mode='all';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
+		var f=document.getElementById('nd-frame'),btn=document.getElementById('nd-send'),all=document.getElementById('nd-all'),msg=document.getElementById('nd-msg'),editorOrigin=<?php echo wp_json_encode( $editor_origin ); ?>;
+		var mode='send',dl=document.getElementById('nd-dl'),ready=false,waiting=null,sendButtons=[btn,all,dl];
+		function setSendButtons(enabled){sendButtons.forEach(function(b){b.disabled=!enabled})}
+		function clearWaiting(){if(waiting){window.clearTimeout(waiting);waiting=null}}
+		function requestExport(nextMode){if(!ready){msg.textContent='Editor is still loading. Please wait…';return}mode=nextMode;setSendButtons(false);msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin);clearWaiting();waiting=window.setTimeout(function(){waiting=null;setSendButtons(true);msg.textContent='The editor did not respond. Reload this Playground and try again.'},10000)}
+		btn.addEventListener('click',function(){requestExport('send')});
+		all.addEventListener('click',function(){requestExport('all')});
 		document.getElementById('nd-reset').addEventListener('click',function(){var r=new FormData();r.append('action','nudge_demo_reset_optouts');r.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fetch(ajaxurl,{method:'POST',body:r,credentials:'same-origin'}).then(function(){msg.textContent='Opt-outs reset.'})});
-			dl.addEventListener('click',function(){mode='download';msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin)});
+			dl.addEventListener('click',function(){requestExport('download')});
+		f.addEventListener('load',function(){msg.textContent='Loading editor…';f.contentWindow.postMessage({type:'nudge-export-ready-request'},editorOrigin)});
 		window.addEventListener('message',function(e){
-			if(e.origin!==editorOrigin||e.source!==f.contentWindow||!e.data||e.data.type!=='nudge-export')return;
+			if(e.origin!==editorOrigin||e.source!==f.contentWindow||!e.data)return;
+			if(e.data.type==='nudge-export-ready'){ready=true;clearWaiting();setSendButtons(true);msg.textContent='Editor ready.';return}
+			if(e.data.type!=='nudge-export')return;
+			clearWaiting();setSendButtons(true);
 			if(mode==='download'){var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';return}
 			var p=e.data.payload,fd=new FormData();
-			fd.append('action',mode==='all'?'nudge_demo_send_all':'nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);
-			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?(mode==='all'?('Sent '+j.data.count+' personalised mails to made-up customers (fake addresses)'+(j.data.skipped?(', skipped '+j.data.skipped+' who unsubscribed'):'')+'. Each has a footer, an unsubscribe link and a plain-text part. See the mail log.'):('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".')):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'});
+			fd.append('action',mode==='all'?'nudge_demo_send_all':'nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);setSendButtons(false);
+			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?(mode==='all'?('Sent '+j.data.count+' personalised mails to made-up customers (fake addresses)'+(j.data.skipped?(', skipped '+j.data.skipped+' who unsubscribed'):'')+'. Each has a footer, an unsubscribe link and a plain-text part. See the mail log.'):('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".')):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'}).then(function(){setSendButtons(true)});
 		});
 	})();
 	</script>

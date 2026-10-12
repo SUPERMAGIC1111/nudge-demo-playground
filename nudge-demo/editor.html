@@ -668,7 +668,9 @@ function walk(a,b){inline(a,b);for(var i=0;i<a.children.length;i++)walk(a.childr
 window.nudgeExport=function(){var em=document.getElementById('email'),c=em.cloneNode(true);walk(em,c);[].forEach.call(c.querySelectorAll('a'),function(a){a.setAttribute('href','#')});
  var bg=getComputedStyle(em).backgroundColor;var html='<div style="background:#e9eaee;padding:20px 8px"><div style="max-width:600px;margin:0 auto;background:'+bg+';border-radius:16px;overflow:hidden">'+c.innerHTML+'</div></div>';
  return {subject:(document.getElementById('subj')||{}).textContent||'NUDGE test',html:html}};
-window.addEventListener('message',function(e){if(e.source===parent&&e.origin===location.origin&&e.data&&e.data.type==='nudge-export-request'){parent.postMessage({type:'nudge-export',payload:window.nudgeExport()},e.origin)}});
+function nudgeReady(){if(parent!==window)parent.postMessage({type:'nudge-export-ready'},location.origin)}
+window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==location.origin||!e.data)return;if(e.data.type==='nudge-export-ready-request'){nudgeReady();return}if(e.data.type==='nudge-export-request'){parent.postMessage({type:'nudge-export',payload:window.nudgeExport()},e.origin)}});
+nudgeReady();
 })();
 </script>
 </body>
