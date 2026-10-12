@@ -44,6 +44,7 @@ function nudge_demo_page() {
 			<button class="button" id="nd-reset" title="Demo only: forget who unsubscribed">Reset opt-outs</button>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wpml_plugin_log' ) ); ?>">Open mail log</a>
 			<span id="nd-msg" style="margin-left:12px"></span>
+			<br><small><?php echo esc_html( nudge_demo_consent_summary() ); ?></small>
 		</p>
 		<iframe id="nd-frame" src="<?php echo $editor; ?>" style="width:100%;height:1500px;border:1px solid #dcdcde;border-radius:12px;background:#fff" title="NUDGE editor"></iframe>
 	</div>

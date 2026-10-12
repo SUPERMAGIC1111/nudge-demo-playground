@@ -105,6 +105,22 @@ function nudge_demo_deliver( $to, $first, $subject, $html ) {
 	return $ok ? 'sent' : 'failed';
 }
 
+/** Stores the consent record on an order/customer object: yes, time (UTC), wording version. No IP is stored. */
+function nudge_demo_record_consent( $obj ) {
+	$obj->update_meta_data( '_nudge_marketing_consent', 'yes' );
+	$obj->update_meta_data( '_nudge_consent_time', gmdate( 'c' ) );
+	$obj->update_meta_data( '_nudge_consent_version', NUDGE_DEMO_CONSENT_VERSION );
+}
+
+/** Demo helper: how many orders carry a consent record (shown on the NUDGE admin page). */
+function nudge_demo_consent_summary() {
+	if ( ! function_exists( 'wc_get_orders' ) ) { return 'WooCommerce not active.'; }
+	$orders = wc_get_orders( array( 'limit' => 50, 'meta_key' => '_nudge_marketing_consent', 'meta_value' => 'yes', 'return' => 'objects' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery
+	if ( ! $orders ) { return 'Consent records: none yet.'; }
+	$o = $orders[0];
+	return 'Consent records: ' . count( $orders ) . ' (latest order #' . $o->get_id() . ', ' . esc_html( (string) $o->get_meta( '_nudge_consent_time' ) ) . ', wording ' . esc_html( (string) $o->get_meta( '_nudge_consent_version' ) ) . ')';
+}
+
 /** Consent capture at WooCommerce checkout (opt-in, unticked). HPOS-safe: uses the order object. */
 add_action( 'plugins_loaded', function () {
 	if ( ! class_exists( 'WooCommerce' ) ) { return; }
