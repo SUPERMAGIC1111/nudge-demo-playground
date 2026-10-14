@@ -57,7 +57,7 @@ button:focus-visible,input:focus-visible,[contenteditable]:focus-visible,.slot:f
 .em .offer{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:var(--offbg,var(--soft));border-radius:var(--r);padding:22px}
 .em .big{font-family:var(--hf);font-weight:700;font-size:clamp(2.2rem,10vw,3.4rem);line-height:.95;letter-spacing:-.05em;color:var(--bigc,var(--hl))}
 .em .offer p{margin:2px 0 0;opacity:.8}
-.em .foot{background:#161513;color:#c9c5bd;font-size:.8rem;text-align:center;padding:24px 20px;order:99}.em .foot a{color:#fff}
+.em .foot{background:var(--foot,#161513);color:var(--footink,#c9c5bd);font-size:.8rem;text-align:center;padding:24px 20px;order:99}.em .foot a{color:var(--footlink,#fff)}
 .em .hero{order:1}.em .offerwrap{order:2}.em .herop{order:3}.em .cardsw{order:4}
 @media(max-width:520px){.em .two{grid-template-columns:1fr}.em .pad{padding:22px 20px}}
 
@@ -535,14 +535,15 @@ function paint(){var p=P[purpose],e=$('email');e.className='em look-'+look+' occ
 function setImg(s,u){s.style.backgroundImage='url('+u+')';s.classList.add('has')}
 function snap(){hist.push(JSON.stringify({tok:tok,body:$('email').innerHTML,subj:$('subj').textContent}));if(hist.length>30)hist.shift()}
 function applyTok(){var e=$('email');Object.keys(tok).forEach(function(k){if(k.indexOf('--')===0)e.style.setProperty(k,tok[k])});e.querySelectorAll('h2').forEach(function(h){h.style.fontSize=tok.hlSize||''});$('subj').textContent=subj[purpose]||$('subj').textContent}
-function refine(){var raw=$('rin').value.trim().toLowerCase();if(!raw)return;snap();var parts=raw.split(/\s+(?:but|and then|and)\s+|\s*;\s*/).filter(function(p){return p.length>2});var did=[];
+function refine(){var raw=$('rin').value.trim().toLowerCase();if(!raw)return;snap();var unk=[];var parts=raw.split(/\s+(?:but|and then|and)\s+|\s*;\s*/).filter(function(p){return p.length>2});var did=[];
  parts.forEach(function(p){var c=colour(p),e=$('email');
-  if(/\b(background|bg)\b/.test(p)&&c){var d=lum(c)<.5;tok['--bg']=c;tok['--blk']=c;tok['--ink']=d?'#f3f3f5':'#1d1b18';tok['--soft']=d?'rgba(255,255,255,.1)':'rgba(0,0,0,.06)';tok['--offbg']=d?'rgba(255,255,255,.08)':'rgba(0,0,0,.05)';tok['--cardbg']='transparent';if(!tok._hlu)tok['--hl']=d?'#ffffff':'#1d1b18';if(!tok._bigu)tok['--bigc']=d?'#ffffff':'#1d1b18';did.push('background (text colours adjusted)')}
+  if(/\b(footer|foot)\b/.test(p)&&c){var fd=lum(c)<.5;tok['--foot']=c;tok['--footink']=fd?'#f3f3f5':'#1d1b18';tok['--footlink']=fd?'#fff':'#1d1b18';did.push('footer')}
+  else if(/\b(background|bg)\b/.test(p)&&c){var d=lum(c)<.5;tok['--bg']=c;tok['--blk']=c;tok['--ink']=d?'#f3f3f5':'#1d1b18';tok['--soft']=d?'rgba(255,255,255,.1)':'rgba(0,0,0,.06)';tok['--offbg']=d?'rgba(255,255,255,.08)':'rgba(0,0,0,.05)';tok['--cardbg']='transparent';if(!tok._hlu)tok['--hl']=d?'#ffffff':'#1d1b18';if(!tok._bigu)tok['--bigc']=d?'#ffffff':'#1d1b18';did.push('background (text colours adjusted)')}
   else if(/\b(button|cta)\b/.test(p)&&c){tok['--btn']=c;tok['--btnt']=lum(c)<.5?'#fff':'#111';did.push('button')}
   else if(/\b(headline|heading|title)\b/.test(p)&&c){tok['--hl']=c;tok._hlu=1;did.push('headline')}
   else if(/\b(body|text|copy|paragraph)\b/.test(p)&&c){tok['--ink']=c;did.push('text')}
   else if(/\b(accent|brand|main|primary)\b/.test(p)&&c){tok['--ac']=c;did.push('accent')}
-  else if(c&&/\b(make|change|turn)\b/.test(p)){tok['--ac']=c;did.push('accent')}
+  else if(c&&/\b(make|change|turn)\b/.test(p)){var um=p.match(/\b(?:the|my)\s+([a-z]+)/);if(um&&!/^(email|mail|whole|everything|look|style|design|thing|colou?r|colou?rs|page|newsletter)$/.test(um[1])){unk.push(um[1])}else{tok['--ac']=c;did.push('accent')}}
   if(/\b(bigger|larger)\b/.test(p)&&/\b(headline|title)\b/.test(p)){tok.hlSize='clamp(2.2rem,8.5vw,3.2rem)';did.push('bigger headline')}
   if(/\bsmaller\b/.test(p)&&/\b(headline|title)\b/.test(p)){tok.hlSize='clamp(1.3rem,4.5vw,1.7rem)';did.push('smaller headline')}
   if(/\bplayful|fun\b/.test(p)){playful(e);did.push('playful')}
@@ -550,7 +551,7 @@ function refine(){var raw=$('rin').value.trim().toLowerCase();if(!raw)return;sna
   if(/\bsubject\b/.test(p)){var o=['A little something for you, {{first_name}}','We kept this for you','Quick note from us','Do not miss this, {{first_name}}'];subj[purpose]=o[Math.floor(Math.random()*o.length)];did.push('subject')}
   var lk=LOOKS.filter(function(x){return new RegExp('\\b'+x[0]+'\\b').test(p)});if(lk.length&&/\b(look|style|template|switch|use)\b/.test(p)){look=lk[0][0];paint();did.push('look')}
  });
- applyTok();$('rin').value='';$('rhint').textContent=did.length?'Done: '+did.join(', ')+'.':'I did not find a colour or command in that. Try: "headline red", "background navy", "button yellow", "shorter".'}
+ applyTok();$('rin').value='';$('rhint').textContent=unk.length?(did.length?'Done: '+did.join(', ')+'. ':'')+'I could not find a "'+unk[0]+'" part. I can change: headline, background, button, text, accent, footer.':did.length?'Done: '+did.join(', ')+'.':'I did not find a colour or command in that. Try: "headline red", "background navy", "button yellow", "shorter".'}
 function playful(e){var h=e.querySelector('h2');if(h&&!/[!🎉]/.test(h.textContent))h.textContent=h.textContent.replace(/\.\s*$/,'')+'! 🎉';e.querySelectorAll('p[data-e=body]').forEach(function(x){var s=x.textContent.replace(/\.(\s|$)/g,'!$1');if(!/^hey/i.test(s))s='Hey {{first_name}}! '+s;x.textContent=s});var c=e.querySelector('.cta span');if(c&&!/!/.test(c.textContent))c.textContent=c.textContent+' ✨'}
 function undo(){var s=hist.pop();if(!s)return;var o=JSON.parse(s);tok=o.tok;$('email').innerHTML=o.body;var e=$('email');e.removeAttribute('style');applyTok();$('subj').textContent=o.subj;$('rhint').textContent='Undone.'}
 function fromText(){var raw=$('prompt').value.trim();if(!raw){$('prompt').focus();return}var p=raw.toLowerCase().replace(/[\u2019']s\b/g,'s').replace(/[\u2019']/g,'');purpose=/\b(thank|thanks|thankyou|order|orders)\b/.test(p)?'thanks':/\b(win|winback|back|miss|inactive|lapsed|return)\b/.test(p)?'winback':/\b(sale|off|flash|discount)\b|%/.test(p)?'sale':/\b(welcome|first|new customers?)\b/.test(p)?'welcome':'thanks';var lk=LOOKS.filter(function(x){return new RegExp('\\b'+x[0]+'\\s+(look|style|template|version)|(look|style|template)\\s+(is\\s+)?'+x[0]+'\\b|in the '+x[0]+'\\b').test(p)});if(lk.length)look=lk[0][0];reset();var did=[P[purpose].label+' email in the '+look+' look'];var pc=p.match(/(\d{1,2})\s*%/);if(pc){var b=$('email').querySelector('.big');b.textContent=pc[1]+'%';var hh=$('email').querySelector('h2');hh.textContent=hh.textContent.replace(/\d{1,2}%/,pc[1]+'%');did.push('discount '+pc[1]+'%')}
@@ -660,7 +661,11 @@ document.addEventListener('input',function(e){var t=e.target;if(!t||!t.getAttrib
 /* NUDGE demo bridge: lets the WordPress admin page ask the editor for an email-ready snapshot. */
 (function(){
 var PROPS=['color','background-color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','text-transform','text-decoration','padding-top','padding-right','padding-bottom','padding-left','margin-top','margin-bottom','border-top-left-radius','border-top-right-radius','border-bottom-left-radius','border-bottom-right-radius','border-top','border-bottom','width','max-width','display','vertical-align'];
-function inline(src,dst){var cs=getComputedStyle(src),s='';PROPS.forEach(function(p){var v=cs.getPropertyValue(p);if(v&&v!=='normal'&&v!=='none'&&v!=='auto'&&v!=='0px'&&v!=='rgba(0, 0, 0, 0)')s+=p+':'+v+';'});
+var _cx=null;function toRgb(m){try{if(!_cx){var c=document.createElement('canvas');c.width=c.height=1;_cx=c.getContext('2d',{willReadFrequently:true})}_cx.clearRect(0,0,1,1);_cx.fillStyle='#000';_cx.fillStyle=m;_cx.fillRect(0,0,1,1);var d=_cx.getImageData(0,0,1,1).data;return d[3]<255?'rgba('+d[0]+','+d[1]+','+d[2]+','+(d[3]/255).toFixed(2)+')':'rgb('+d[0]+','+d[1]+','+d[2]+')'}catch(e){return m}}
+function inline(src,dst){var cs=getComputedStyle(src),s='';PROPS.forEach(function(p){var v=cs.getPropertyValue(p);if(v&&v.indexOf('color(')>=0)v=v.replace(/color\([^)]*\)/g,toRgb);if(p==='width'||p==='max-width')return;if(v&&v!=='normal'&&v!=='none'&&v!=='auto'&&v!=='0px'&&v!=='rgba(0, 0, 0, 0)')s+=p+':'+v+';'});
+ if(cs.display==='none')s+='display:none;';
+ var pd=src.parentElement?getComputedStyle(src.parentElement).display:'',pw=src.parentElement&&src.parentElement.clientWidth,ow=src.offsetWidth;if(ow&&pw&&!/grid|flex/.test(pd)&&src.tagName!=='A'&&src.tagName!=='SPAN'&&src.tagName!=='B'&&src.tagName!=='SMALL'&&src.tagName!=='I'&&ow<pw-2)s+='width:'+(ow/pw*100).toFixed(2)+'%;';
+ s+='max-width:100%;box-sizing:border-box;';
  if(cs.display==='grid'||cs.display==='flex'){s=s.replace(/display:[^;]*;/,'display:block;')}
  if(cs.backgroundImage&&cs.backgroundImage!=='none'&&cs.backgroundImage.indexOf('gradient')<0&&cs.backgroundImage.indexOf('url(')===0)s+='background-image:'+cs.backgroundImage+';background-size:cover;';
  dst.setAttribute('style',s);dst.removeAttribute('class');dst.removeAttribute('contenteditable');dst.removeAttribute('data-e');dst.removeAttribute('data-slot');dst.removeAttribute('tabindex');dst.removeAttribute('role');dst.removeAttribute('aria-label')}
