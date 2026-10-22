@@ -88,21 +88,9 @@ function nudge_demo_plain_text( $html ) {
  * and a plain-text part. Returns 'sent', 'skipped' or 'failed'.
  */
 function nudge_demo_deliver( $to, $first, $subject, $html ) {
-	if ( nudge_demo_is_optout( $to ) ) { return 'skipped'; }
-	$subject = str_replace( '{{first_name}}', $first, $subject );
-	$html    = str_replace( '{{first_name}}', esc_html( $first ), $html ) . nudge_demo_footer_html( $to );
-	$alt     = nudge_demo_plain_text( $html );
-	$unsub   = nudge_demo_unsub_url( $to );
-	$headers = array(
-		'Content-Type: text/html; charset=UTF-8',
-		'List-Unsubscribe: <' . $unsub . '>',
-		'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
-	);
-	$cb = function ( $phpmailer ) use ( $alt ) { $phpmailer->AltBody = $alt; };
-	add_action( 'phpmailer_init', $cb );
-	$ok = wp_mail( $to, $subject, $html, $headers );
-	remove_action( 'phpmailer_init', $cb );
-	return $ok ? 'sent' : 'failed';
+	// This public preview is intentionally no-send. Keep the guard server-side so
+	// a forged admin request cannot turn the demo into a mailer.
+	return 'disabled';
 }
 
 /** Stores the consent record on an order/customer object: yes, time (UTC), wording version. No IP is stored. */

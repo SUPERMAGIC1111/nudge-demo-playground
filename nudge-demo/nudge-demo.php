@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: NUDGE Demo
- * Description: Demo of NUDGE inside WooCommerce. Builds a marketing email in the browser. "Send test email" goes ONLY to your own admin address. No customers are contacted.
- * Version: 0.2.0 (consent, working unsubscribe, legal footer, plain-text part)
+ * Description: Synthetic NUDGE preview inside WooCommerce. Builds an editable example email in the browser; delivery is disabled.
+ * Version: 0.2.1 (safe public preview)
  * Author: AIgotya
  * License: GPL-2.0-or-later
  */
@@ -31,44 +31,31 @@ function nudge_demo_page() {
 	$editor_origin = wp_parse_url( $editor, PHP_URL_SCHEME ) . '://' . wp_parse_url( $editor, PHP_URL_HOST );
 	$editor_port = wp_parse_url( $editor, PHP_URL_PORT );
 	if ( $editor_port ) { $editor_origin .= ':' . $editor_port; }
-	$me     = wp_get_current_user();
-	$nonce  = wp_create_nonce( 'nudge_demo_send' );
 	?>
 	<div class="wrap" style="max-width:1100px">
 		<h1 style="display:flex;gap:12px;align-items:center">NUDGE <span style="font-size:12px;background:#f76e11;color:#fff;border-radius:999px;padding:3px 10px">demo</span></h1>
-		<p>Build an email below. <strong>Send test email</strong> sends it only to <code><?php echo esc_html( $me->user_email ); ?></code> (the fake admin of this throwaway shop, not a real inbox). No real person is contacted. Customer data in the editor is made up. To see the result: click <strong>Open mail log</strong>, or <strong>Download email</strong> and open the file.</p>
+		<p>This is a synthetic visual preview. It builds an editable example email, but does not query WooCommerce customers, send email, or connect to an AI service. Download the preview to inspect it outside WordPress.</p>
 		<p>
-			<button class="button button-primary" id="nd-send" disabled>Send test email to me</button>
-			<button class="button" id="nd-all" disabled>Send to 5 made-up customers</button>
+			<button class="button" disabled title="This public preview never sends email">Email sending disabled</button>
 			<button class="button" id="nd-dl" disabled>Download email (.html)</button>
-			<button class="button" id="nd-reset" title="Demo only: forget who unsubscribed">Reset opt-outs</button>
-			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=wpml_plugin_log' ) ); ?>">Open mail log</a>
 			<span id="nd-msg" style="margin-left:12px"></span>
-			<br><small><?php echo esc_html( nudge_demo_consent_summary() ); ?> · <a href="<?php echo esc_url( nudge_demo_unsub_url( 'anna@example.test' ) ); ?>" target="_blank" rel="noopener">Try the unsubscribe link of demo customer Anna</a> (then press "Send to 5 made-up customers": Anna is skipped)</small>
+			<br><small>Made-up example counts only. Consent, audience selection and delivery need the full NUDGE product and merchant-approved rules.</small>
 		</p>
 		<iframe id="nd-frame" src="<?php echo $editor; ?>" style="width:100%;height:1500px;border:1px solid #dcdcde;border-radius:12px;background:#fff" title="NUDGE editor"></iframe>
 	</div>
 	<script>
 	(function(){
-		var f=document.getElementById('nd-frame'),btn=document.getElementById('nd-send'),all=document.getElementById('nd-all'),msg=document.getElementById('nd-msg'),editorOrigin=<?php echo wp_json_encode( $editor_origin ); ?>;
-		var mode='send',dl=document.getElementById('nd-dl'),ready=false,waiting=null,sendButtons=[btn,all,dl];
-		function setSendButtons(enabled){sendButtons.forEach(function(b){b.disabled=!enabled})}
+		var f=document.getElementById('nd-frame'),msg=document.getElementById('nd-msg'),editorOrigin=<?php echo wp_json_encode( $editor_origin ); ?>;
+		var dl=document.getElementById('nd-dl'),ready=false,waiting=null;
 		function clearWaiting(){if(waiting){window.clearTimeout(waiting);waiting=null}}
-		function requestExport(nextMode){if(!ready){msg.textContent='Editor is still loading. Please wait…';return}mode=nextMode;setSendButtons(false);msg.textContent='Preparing…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin);clearWaiting();waiting=window.setTimeout(function(){waiting=null;setSendButtons(true);msg.textContent='The editor did not respond. Reload this Playground and try again.'},10000)}
-		btn.addEventListener('click',function(){requestExport('send')});
-		all.addEventListener('click',function(){requestExport('all')});
-		document.getElementById('nd-reset').addEventListener('click',function(){var r=new FormData();r.append('action','nudge_demo_reset_optouts');r.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fetch(ajaxurl,{method:'POST',body:r,credentials:'same-origin'}).then(function(){msg.textContent='Opt-outs reset.'})});
-			dl.addEventListener('click',function(){requestExport('download')});
+		function requestExport(){if(!ready){msg.textContent='Editor is still loading. Please wait…';return}dl.disabled=true;msg.textContent='Preparing download…';f.contentWindow.postMessage({type:'nudge-export-request'},editorOrigin);clearWaiting();waiting=window.setTimeout(function(){waiting=null;dl.disabled=false;msg.textContent='The editor did not respond. Reload this Playground and try again.'},10000)}
+		dl.addEventListener('click',requestExport);
 		f.addEventListener('load',function(){msg.textContent='Loading editor…';f.contentWindow.postMessage({type:'nudge-export-ready-request'},editorOrigin)});
 		window.addEventListener('message',function(e){
 			if(e.origin!==editorOrigin||e.source!==f.contentWindow||!e.data)return;
-			if(e.data.type==='nudge-export-ready'){ready=true;clearWaiting();setSendButtons(true);msg.textContent='Editor ready.';return}
+			if(e.data.type==='nudge-export-ready'){ready=true;clearWaiting();dl.disabled=false;msg.textContent='Editor ready. Email sending is disabled.';return}
 			if(e.data.type!=='nudge-export')return;
-			clearWaiting();setSendButtons(true);
-			if(mode==='download'){var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';return}
-			var p=e.data.payload,fd=new FormData();
-			fd.append('action',mode==='all'?'nudge_demo_send_all':'nudge_demo_send');fd.append('_wpnonce','<?php echo esc_js( $nonce ); ?>');fd.append('subject',p.subject);fd.append('html',p.html);setSendButtons(false);
-			fetch(ajaxurl,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){msg.textContent=j.success?(mode==='all'?('Sent '+j.data.count+' personalised mails to made-up customers (fake addresses)'+(j.data.skipped?(', skipped '+j.data.skipped+' who unsubscribed'):'')+'. Each has a footer, an unsubscribe link and a plain-text part. See the mail log.'):('Sent to '+j.data.to+'. It is in the mail log now: click "Open mail log".')):('Failed: '+(j.data&&j.data.message||'unknown'))}).catch(function(){msg.textContent='Failed.'}).then(function(){setSendButtons(true)});
+			clearWaiting();dl.disabled=false;var q=e.data.payload,page='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+String(q.subject).replace(/[<>&]/g,'')+'</title></head><body style="margin:0">'+q.html+'</body></html>',a=document.createElement('a');a.href=URL.createObjectURL(new Blob([page],{type:'text/html'}));a.download='nudge-email.html';document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded nudge-email.html. Open it in any browser.';
 		});
 	})();
 	</script>
@@ -79,34 +66,11 @@ function nudge_demo_page() {
 add_action( 'wp_ajax_nudge_demo_send_all', function () {
 	check_ajax_referer( 'nudge_demo_send' );
 	if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Not allowed' ), 403 ); }
-	$customers = array(
-		'Anna'  => 'anna@example.test',
-		'Marco' => 'marco@example.test',
-		'Lena'  => 'lena@example.test',
-		'Carlos' => 'carlos@example.test',
-		'Sofia' => 'sofia@example.test',
-	);
-	$subject_t = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : 'NUDGE test';
-	$html_t    = isset( $_POST['html'] ) ? wp_kses_post( wp_unslash( $_POST['html'] ) ) : '';
-	$count     = 0;
-	$skipped   = 0;
-	foreach ( $customers as $first => $to ) {
-		$res = nudge_demo_deliver( $to, $first, '[NUDGE demo] ' . $subject_t, $html_t );
-		if ( 'sent' === $res ) { $count++; }
-		if ( 'skipped' === $res ) { $skipped++; }
-	}
-	wp_send_json_success( array( 'count' => $count, 'skipped' => $skipped ) );
+	wp_send_json_error( array( 'message' => 'Email delivery is disabled in this public preview.' ), 403 );
 } );
 
 add_action( 'wp_ajax_nudge_demo_send', function () {
 	check_ajax_referer( 'nudge_demo_send' );
 	if ( ! current_user_can( 'manage_options' ) ) { wp_send_json_error( array( 'message' => 'Not allowed' ), 403 ); }
-	$me      = wp_get_current_user();
-	$to      = $me->user_email; // fixed: only ever the logged-in admin. Never a customer.
-	$name    = $me->display_name ? $me->display_name : 'there';
-	$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : 'NUDGE test';
-	$html    = isset( $_POST['html'] ) ? wp_kses_post( wp_unslash( $_POST['html'] ) ) : '';
-	$res     = nudge_demo_deliver( $to, $name, '[NUDGE test] ' . $subject, $html );
-	if ( 'sent' === $res ) { wp_send_json_success( array( 'to' => $to ) ); }
-	wp_send_json_error( array( 'message' => 'skipped' === $res ? 'This address has unsubscribed (use Reset opt-outs).' : 'wp_mail returned false' ) );
+	wp_send_json_error( array( 'message' => 'Email delivery is disabled in this public preview.' ), 403 );
 } );

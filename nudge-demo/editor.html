@@ -452,7 +452,7 @@ document.addEventListener('click',function(e){if(e.target.closest('.btbar button
   <path class="st0" d="M1051.41,202.34c0,12.68-6.54,19.02-19.64,19.02h-66.59c1.77,12.31,6.23,21.59,13.36,27.83,7.14,6.26,16.07,9.37,26.81,9.37,7.67,0,14.42-1.65,20.23-4.93,5.81-3.29,10.34-7.38,13.59-12.27,2.85-2.81,5.37-4.23,7.53-4.23,3.35,0,4.97,2.21,4.87,6.63-.5,7.05-3.08,13.67-7.74,19.88-4.68,6.2-11.13,11.24-19.35,15.08-8.22,3.86-17.94,5.77-29.16,5.77-13.19,0-24.61-2.68-34.26-8.04-9.65-5.36-17.11-12.8-22.36-22.34-5.26-9.54-7.91-20.6-7.91-33.19s2.59-23.84,7.75-33.75c5.17-9.91,12.64-17.74,22.44-23.47,9.79-5.73,21.73-8.59,35.81-8.59,11.02,0,20.62,2.09,28.79,6.28,8.17,4.18,14.52,9.82,19.04,16.92,4.53,7.1,6.79,15.1,6.79,24.03h0ZM991.75,173.45c-7.58,0-13.9,2.96-18.97,8.88s-7.85,14.37-8.34,25.37h40.91c5.52,0,8.27-2.63,8.27-7.9,0-8.26-2.07-14.73-6.2-19.38s-9.35-6.97-15.65-6.97h0,0Z"/>
 </svg></a><span class="demo">Demo with made-up customers. Nothing is sent.</span></div>
   <h1>Tell Nudge what you want. <span>It handles the rest.</span></h1>
-  <p class="sub">Pick what the email is for and a look. Click any text to edit it, click any picture to swap it.</p>
+  <p class="sub">A synthetic visual preview: pick an email type and a look. Click any text to edit it, click any picture to swap it.</p>
 
   <div class="lab">What is it for?</div><div class="chips" id="purposes" role="group" aria-label="What is the email for?"></div>
   <div class="lab">Look</div><div class="chips" id="looks" role="group" aria-label="Look"></div>
@@ -473,7 +473,7 @@ document.addEventListener('click',function(e){if(e.target.closest('.btbar button
     <div class="ask"><b>✎</b><input id="rin" aria-label="Tell Nudge what to change" placeholder="e.g. make the headline red but the background cream"><button class="btn" id="undo" type="button" aria-label="Undo">↩</button><button class="go" id="rgo" type="button">Change</button></div>
     <p class="hint" id="rhint">You can combine: "make the headline yellow but the background navy".</p>
   </div>
-  <div class="bar"><small>Only customers with recorded consent are included. A lawyer must approve the rules before real use.</small><button class="btn send" type="button" disabled>Sending disabled · preview only</button></div>
+  <div class="bar"><small>Example counts are made up; this preview does not read shop data or send email.</small><span><button class="btn" id="save" type="button">Save draft</button> <button class="btn send" type="button" disabled>Sending disabled · preview only</button></span></div>
   <p class="fine">Pictures: click any picture box, or drag your own in. Nothing leaves your browser.</p>
 </div>
 <input type="file" id="file" accept="image/*" hidden>
@@ -531,7 +531,7 @@ function addApple(e){var f=e.querySelector('.foot');if(!f)return;var d=document.
 function paint(){var p=P[purpose],e=$('email');e.className='em look-'+look+' occ-'+purpose;e.removeAttribute('style');e.innerHTML=html(p);[].forEach.call(e.querySelectorAll('.herop'),function(h){var c=document.createElement('p');c.className='cap';c.contentEditable='true';c.textContent=CAPS[purpose]||'Add a line about this picture: what it shows and why it matters.';h.appendChild(c)});if(look==='apple')addApple(e);
  Object.keys(imgs).forEach(function(id){var s=e.querySelector('[data-slot="'+id+'"]');if(s)setImg(s,imgs[id])});
  [].forEach.call($('purposes').children,function(c){c.classList.toggle('on',c.dataset.k===purpose)});[].forEach.call($('looks').children,function(c){c.classList.toggle('on',c.dataset.k===look)});
- $('subj').textContent=subj[purpose]||p.subj;$('aud').textContent=p.n+' customers';$('audWhy').textContent=p.aud+' (made-up demo data)'}
+ $('subj').textContent=subj[purpose]||p.subj;$('aud').textContent=p.n+' example customers';$('audWhy').textContent=p.aud+' · synthetic preview, not a live query'}
 function setImg(s,u){s.style.backgroundImage='url('+u+')';s.classList.add('has')}
 function snap(){hist.push(JSON.stringify({tok:tok,body:$('email').innerHTML,subj:$('subj').textContent}));if(hist.length>30)hist.shift()}
 function applyTok(){var e=$('email');Object.keys(tok).forEach(function(k){if(k.indexOf('--')===0)e.style.setProperty(k,tok[k])});e.querySelectorAll('h2').forEach(function(h){h.style.fontSize=tok.hlSize||''});$('subj').textContent=subj[purpose]||$('subj').textContent}
@@ -558,7 +558,10 @@ function fromText(){var raw=$('prompt').value.trim();if(!raw){$('prompt').focus(
  // A lapse instruction must win over the generic word "order". Otherwise
  // "customers who haven't ordered in 3 months" became an order-confirmation.
  var lapse=/\b(havent|have not|hasnt|has not|didnt|did not|not ordered|no orders?|inactive|lapsed)\b/.test(p)&&/\b(order|orders|bought|buy|purchase|purchased|customer|customers)\b/.test(p);
- purpose=lapse||/\b(win|winback|back|miss|return)\b/.test(p)?'winback':/\b(thank|thanks|thankyou|order|orders)\b/.test(p)?'thanks':/\b(sale|off|flash|discount)\b|%/.test(p)?'sale':/\b(welcome|first|new customers?)\b/.test(p)?'welcome':'thanks';var lk=LOOKS.filter(function(x){return new RegExp('\\b'+x[0]+'\\s+(look|style|template|version)|(look|style|template)\\s+(is\\s+)?'+x[0]+'\\b|in the '+x[0]+'\\b').test(p)});if(lk.length)look=lk[0][0];reset();var did=[P[purpose].label+' email in the '+look+' look'];var pc=p.match(/(\d{1,2})\s*%/);if(pc){var b=$('email').querySelector('.big');b.textContent=pc[1]+'%';var hh=$('email').querySelector('h2');hh.textContent=hh.textContent.replace(/\d{1,2}%/,pc[1]+'%');did.push('discount '+pc[1]+'%')}
+ var unsupportedAudience=/\b(near|within|berlin|everyone|all customers?|vip|delivery status|parcel)\b/.test(p);
+ var chosen=lapse||/\b(win|winback|back|miss|return)\b/.test(p)?'winback':/\b(thank|thanks|thankyou)\b/.test(p)?'thanks':/\b(sale|off|flash|discount)\b|%/.test(p)?'sale':/\b(welcome|first|new customers?)\b/.test(p)?'welcome':/\b(newsletter|news)\b/.test(p)?'news':/\b(new product|launch|just landed)\b/.test(p)?'launch':/\b(invite|invitation|event)\b/.test(p)?'event':/\b(update|shipping|delivery)\b/.test(p)?'letter':null;
+ if(!chosen||unsupportedAudience){$('rhint').textContent='I cannot safely infer that audience in this synthetic preview. Try: thank recent buyers, win back inactive customers, flash sale, welcome, newsletter, new product, invitation, or update.';return}
+ purpose=chosen;var lk=LOOKS.filter(function(x){return new RegExp('\\b'+x[0]+'\\s+(look|style|template|version)|(look|style|template)\\s+(is\\s+)?'+x[0]+'\\b|in the '+x[0]+'\\b').test(p)});if(lk.length)look=lk[0][0];reset();var did=[P[purpose].label+' email in the '+look+' look'];var pc=p.match(/(\d{1,2})\s*%/);if(pc){var b=$('email').querySelector('.big');b.textContent=pc[1]+'%';var hh=$('email').querySelector('h2');hh.textContent=hh.textContent.replace(/\d{1,2}%/,pc[1]+'%');did.push('discount '+pc[1]+'%')}
  if(/playful|fun/.test(p)){playful($('email'));did.push('playful')}
  if(/short|brief/.test(p)){$('email').querySelectorAll('p[data-e=body]').forEach(function(x){var s=x.textContent.split(/(?<=[.!?])\s+/);if(s.length>1)x.textContent=s[0]});did.push('short')}
  if(/premium|luxury|elegant/.test(p)&&!lk.length){look='editorial';reset();did.push('premium look')}
@@ -577,11 +580,13 @@ $('email').addEventListener('dragover',function(e){if(e.target.closest('.slot'))
 $('email').addEventListener('drop',function(e){var s=e.target.closest('.slot');if(!s)return;e.preventDefault();load(e.dataTransfer.files[0],s)});
 $('make').onclick=fromText;$('prompt').addEventListener('keydown',function(e){if(e.key==='Enter')fromText()});
 $('rgo').onclick=refine;$('rin').addEventListener('keydown',function(e){if(e.key==='Enter')refine()});$('undo').onclick=undo;
+$('save').onclick=function(){try{localStorage.setItem('nudge-demo-draft-v1',JSON.stringify({purpose:purpose,look:look,tok:tok,body:$('email').innerHTML,subj:$('subj').textContent,prompt:$('prompt').value}));$('rhint').textContent='Draft saved in this browser.'}catch(e){$('rhint').textContent='Draft could not be saved in this browser.'}};
 ['c-bg','c-blk','c-hl','c-ink','c-btn','c-ac','c-font'].forEach(function(i){$(i).addEventListener('input',function(){if(look==='custom')custom()})});
 $('c-logo').addEventListener('change',function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){logoUrl=r.result;putLogo()};r.readAsDataURL(f)});
 $('c-use').onclick=function(){var h=$('c-html').value.trim();if(!h)return;var s=$('email').parentNode,f=s.querySelector('iframe');if(!f){f=document.createElement('iframe');f.setAttribute('sandbox','allow-same-origin');f.title='Your email';s.appendChild(f)}f.style.height='260px';f.onload=function(){try{var d=f.contentDocument;f.style.height=Math.max(160,Math.min(d.documentElement.scrollHeight+8,2400))+'px'}catch(x){}};f.srcdoc=h;$('email').style.display='none';f.scrollIntoView({behavior:'smooth',block:'center'})};
 $('c-back').onclick=function(){var f=$('email').parentNode.querySelector('iframe');if(f)f.remove();$('email').style.display=''};
 mk();paint();
+(function(){try{var d=JSON.parse(localStorage.getItem('nudge-demo-draft-v1')||'null');if(!d||!P[d.purpose])return;purpose=d.purpose;look=LOOKS.some(function(x){return x[0]===d.look})?d.look:'minimal';tok=d.tok||{};paint();if(d.body)$('email').innerHTML=d.body;if(d.subj)$('subj').textContent=d.subj;if(d.prompt)$('prompt').value=d.prompt;$('rhint').textContent='Restored saved draft from this browser.'}catch(e){}})();
 (function(){var el=document.getElementById('prompt'),S=["Thank this week's buyers. Warm tone.","Win back customers who haven't ordered in 3 months","Announce a 20% off flash sale this weekend","Welcome first-time buyers and tell them what to expect"],si=0,ci=0,del=false,still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function tick(){if(document.activeElement===el||el.value){setTimeout(tick,1200);return}var s=S[si];if(still){el.placeholder=s;si=(si+1)%S.length;setTimeout(tick,3500);return}
  if(!del){ci++;el.placeholder=s.slice(0,ci)+'\u258c';if(ci>=s.length){del=true;setTimeout(tick,1800);return}setTimeout(tick,45)}else{ci-=2;if(ci<=0){ci=0;del=false;si=(si+1)%S.length;el.placeholder='\u258c';setTimeout(tick,500);return}el.placeholder=s.slice(0,ci)+'\u258c';setTimeout(tick,22)}}
