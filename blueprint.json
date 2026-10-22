@@ -6,7 +6,7 @@
   "steps": [
     { "step": "installPlugin", "pluginData": { "resource": "wordpress.org/plugins", "slug": "woocommerce" }, "options": { "activate": true } },
     { "step": "installPlugin", "pluginData": { "resource": "wordpress.org/plugins", "slug": "wp-mail-logging" }, "options": { "activate": true } },
-    { "step": "installPlugin", "pluginData": { "resource": "git:directory", "url": "https://github.com/SUPERMAGIC1111/nudge-demo-playground", "ref": "fix/public-demo-audit-1022", "path": "nudge-demo" }, "options": { "activate": true } },
+    { "step": "installPlugin", "pluginData": { "resource": "git:directory", "url": "https://github.com/SUPERMAGIC1111/nudge-demo-playground", "ref": "main", "path": "nudge-demo" }, "options": { "activate": true } },
     { "step": "runPHP", "code": "<?php require '/wordpress/wp-load.php'; delete_transient('_wc_activation_redirect'); delete_option('_wc_activation_redirect'); update_option('woocommerce_onboarding_profile', array('skipped'=>true)); update_option('woocommerce_task_list_hidden','yes'); update_option('woocommerce_coming_soon','no'); update_option('blogname','NUDGE Demo Shop');" }
   ]
 }
