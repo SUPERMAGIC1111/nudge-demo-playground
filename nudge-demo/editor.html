@@ -652,12 +652,9 @@ tick()})();
 </script>
 <script>
 (function(){
- var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
- function carousel(delayIn){if(reduce)return;var sc=document.querySelector('.scroll'),fr=document.querySelector('.frame');if(!sc||!fr||!sc.animate)return;
-  var g=sc.cloneNode(true);g.removeAttribute('id');[].forEach.call(g.querySelectorAll('[id]'),function(x){x.removeAttribute('id')});
-  g.style.cssText='position:absolute;left:'+sc.offsetLeft+'px;top:'+sc.offsetTop+'px;width:'+sc.offsetWidth+'px;height:'+sc.offsetHeight+'px;margin:0;z-index:3;pointer-events:none;overflow:hidden';fr.appendChild(g);
-  var out=g.animate([{transform:'perspective(1300px) translateX(0) rotateY(0deg) scale(1)',opacity:1},{transform:'perspective(1300px) translateX(-62%) rotateY(32deg) scale(.86)',opacity:0}],{duration:460,easing:'cubic-bezier(.45,0,.2,1)',fill:'forwards'});out.onfinish=function(){g.remove()};
-  sc.animate([{transform:'perspective(1300px) translateX(62%) rotateY(-32deg) scale(.86)',opacity:0},{transform:'perspective(1300px) translateX(0) rotateY(0deg) scale(1)',opacity:1}],{duration:560,delay:delayIn,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'})}
+ // Keep the editor DOM single-source-of-truth. The former clone-based carousel
+ // could leave a second, stale email visible after a fast prompt change.
+ function carousel(){return}
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.btopts button, #make, #rgo');if(!b)return;
   if(b.closest('.btopts')){b.classList.remove('zap');void b.offsetWidth;b.classList.add('zap')}
   carousel(b.matches('#make,#rgo')?900:60)},true);
